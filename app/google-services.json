@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "613590650703",
+    "project_id": "schedulertodo-59028",
+    "storage_bucket": "schedulertodo-59028.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:613590650703:android:3a8681362744f6554a3f3a",
+        "android_client_info": {
+          "package_name": "com.example.schedulertodo"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "613590650703-uaifjcsjin3k9eghiarct2cgh8q6p2sn.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD8kVXztcsQD1_ZrZvQV2h91sxNcssJM9U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "613590650703-uaifjcsjin3k9eghiarct2cgh8q6p2sn.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

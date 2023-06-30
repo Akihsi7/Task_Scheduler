@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/firstscreen"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FF914D"
+    tools:context=".SplashActivity" >
+
+    <ImageView
+        android:id="@+id/imageView2"
+        android:layout_width="358dp"
+        android:layout_height="98dp"
+        android:layout_marginTop="196dp"
+        android:contentDescription="TODO"
+        android:src="@drawable/tswhite"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.735"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:ignore="ImageContrastCheck" />
+
+    <TextView
+        android:id="@+id/quote"
+        android:layout_width="333dp"
+        android:layout_height="76dp"
+        android:layout_marginTop="432dp"
+        android:gravity="center_horizontal"
+        android:text="The best way to get something done is to begin!"
+        android:textAlignment="center"
+        android:textColor="#FFFFFF"
+        android:textSize="24dp"
+        android:textStyle="bold|italic"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/Loginbuttonhome"
+        android:layout_width="325dp"
+        android:layout_height="55dp"
+        android:layout_marginTop="524dp"
+        android:backgroundTint="@color/white"
+        android:fontFamily="@font/opensans"
+        android:text="Login"
+        android:textColor="#EF6C00"
+        android:textSize="18dp"
+        android:textStyle="bold"
+        app:cornerRadius="40dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/elseSignup"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="620dp"
+        android:text="Don't have an account? Sign Up"
+        android:textColor="#FBFBFB"
+        android:textSize="14dp"
+        android:textStyle="normal|bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+</androidx.constraintlayout.widget.ConstraintLayout>
