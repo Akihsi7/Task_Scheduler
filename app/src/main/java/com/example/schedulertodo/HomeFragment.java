@@ -2,6 +2,8 @@ package com.example.schedulertodo;
 
 import static android.content.ContentValues.TAG;
 
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.os.Bundle;
 
 import androidx.fragment.app.Fragment;
@@ -9,6 +11,7 @@ import androidx.fragment.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.content.BroadcastReceiver;
 
 import android.app.AlarmManager;
 import android.app.PendingIntent;
@@ -46,6 +49,8 @@ import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.WriteBatch;
+import com.google.firebase.messaging.FirebaseMessaging;
+import com.google.firebase.messaging.RemoteMessage;
 
 import java.text.DateFormat;
 import java.text.ParseException;
@@ -59,6 +64,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.TimeZone;
 
 public class HomeFragment extends Fragment implements AddTodoPopupFragment.DialogNextButtonClickListener, TodoAdapter.ToDoAdapterClicksInterface {
@@ -71,6 +77,7 @@ public class HomeFragment extends Fragment implements AddTodoPopupFragment.Dialo
     private TodoAdapter adapter;
     private ArrayList<ToDoData> mList;
     private Timestamp timestamp;
+    private static final String TAG = "HomeFragment";
 
     @Nullable
     @Override
@@ -85,7 +92,23 @@ public class HomeFragment extends Fragment implements AddTodoPopupFragment.Dialo
         init(view);
         getDataFromFirebase();
         registerEvents();
+        storeFCMTokenInFirestore();
     }
+
+    private void createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            CharSequence channelName = "My Channel";
+            String channelDescription = "My Channel Description";
+            int importance = NotificationManager.IMPORTANCE_DEFAULT;
+
+            NotificationChannel channel = new NotificationChannel("myFirebaseChannel", channelName, importance);
+            channel.setDescription(channelDescription);
+
+            NotificationManager notificationManager = requireContext().getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(channel);
+        }
+    }
+
 
     private void init(View view) {
         navController = Navigation.findNavController(view);
@@ -161,6 +184,26 @@ public class HomeFragment extends Fragment implements AddTodoPopupFragment.Dialo
         });
     }
 
+    private void storeFCMTokenInFirestore() {
+        FirebaseMessaging.getInstance().getToken()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful() && task.getResult() != null) {
+                        String token = task.getResult();
+
+                        // Store the token in Firestore
+                        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+                        String uid = currentUser != null ? currentUser.getUid() : "";
+                        DocumentReference userRef = db.collection("users").document(uid);
+
+                        userRef.update("fcmToken", token)
+                                .addOnSuccessListener(aVoid -> Log.d(TAG, "FCM token stored in Firestore"))
+                                .addOnFailureListener(e -> Log.e(TAG, "Failed to store FCM token in Firestore: " + e.getMessage()));
+                    } else {
+                        Log.w(TAG, "Failed to retrieve FCM token: " + task.getException());
+                    }
+                });
+    }
+
 
 
     @Override
@@ -171,6 +214,24 @@ public class HomeFragment extends Fragment implements AddTodoPopupFragment.Dialo
         CollectionReference collectionRef = db.collection("users").document(uid).collection("tasks");
         DocumentReference newTaskRef = collectionRef.document();
         DateFormat dateFormat = new SimpleDateFormat("MMMM d, yyyy", Locale.ENGLISH);
+
+        // Create the taskData object
+        String taskId = newTaskRef.getId(); // Generate the task ID
+        ToDoData taskData = new ToDoData(taskId, popuptodotaskname.getText().toString(), popupdate, popuptime, false);
+
+        // Retrieve the FCM token for the user
+        FirebaseMessaging.getInstance().getToken()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful() && task.getResult() != null) {
+                        String token = task.getResult();
+
+                        // Use the token for sending notifications to this device
+                        sendFcmNotification(token, taskData);
+                    } else {
+                        Log.w(TAG, "Failed to retrieve token: " + task.getException());
+                    }
+                });
+
         try {
             Date date = dateFormat.parse(popupdate);
             DateFormat timeFormat = new SimpleDateFormat("h:mm:ss a", Locale.ENGLISH);
@@ -190,6 +251,8 @@ public class HomeFragment extends Fragment implements AddTodoPopupFragment.Dialo
             taskMap.put("timestamp", timestamp);
             newTaskRef.set(taskMap).addOnCompleteListener(task -> {
                 if (task.isSuccessful()) {
+//                    String taskId = newTaskRef.getId(); // Get the newly generated task ID
+                    scheduleNotification(new ToDoData(taskId, taskMap.get("name").toString(), popupdate, popuptime, false));
                     // Do something else, like displaying a success message
                     Toast.makeText(getContext(), "Added", Toast.LENGTH_SHORT).show();
                 } else {
@@ -202,6 +265,19 @@ public class HomeFragment extends Fragment implements AddTodoPopupFragment.Dialo
         } catch (ParseException e) {
             e.printStackTrace();
         }
+    }
+
+    private void sendFcmNotification(String token, ToDoData taskData) {
+        // Create the FCM message payload
+        Map<String, String> data = new HashMap<>();
+        data.put("title", taskData.getTask());
+        data.put("body", "5 minutes until the task starts");
+        // Add any additional data you want to send with the notification
+
+        // Send the FCM message using the FirebaseMessaging API
+        FirebaseMessaging.getInstance().send(new RemoteMessage.Builder(token)
+                .setData(data)
+                .build());
     }
 
     @Override
@@ -249,61 +325,45 @@ public class HomeFragment extends Fragment implements AddTodoPopupFragment.Dialo
         popupFragment.setListener(this);
         popupFragment.show(getChildFragmentManager(), AddTodoPopupFragment.TAG);
     }
+
+
+
+    private void scheduleNotification(ToDoData taskData) {
+        // Get the task time and calculate the notification time
+        String taskTime = taskData.getTime(); // Assuming time is in HH:mm format
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(Objects.requireNonNull(parseTime(taskTime))); // Parse the task time
+        calendar.add(Calendar.MINUTE, -5); // Subtract 5 minutes to get the notification time
+
+        // Create an Intent to start the notification BroadcastReceiver
+        Intent notificationIntent = new Intent(requireContext(), NotificationReceiver.class);
+        notificationIntent.putExtra("taskData", taskData); // Pass the task data as an extra
+
+        // Create a PendingIntent for the notification
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                requireContext(),
+                taskData.getTaskid().hashCode(), // Use a unique identifier for each notification
+                notificationIntent,
+                PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
+        );
+
+        // Get the AlarmManager and schedule the PendingIntent
+        AlarmManager alarmManager = (AlarmManager) requireContext().getSystemService(Context.ALARM_SERVICE);
+        alarmManager.setExact(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
+    }
+
+//     Helper method to parse the time string and return a Calendar object
+
+    private Date parseTime(String time) {
+        SimpleDateFormat format = new SimpleDateFormat("h:mm:ss a", Locale.getDefault());
+        try {
+            return format.parse(time);
+        } catch (ParseException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+
+
 }
-
-
-
-/**
- * A simple {@link Fragment} subclass.
- * Use the {@link HomeFragment#newInstance} factory method to
- * create an instance of this fragment.
- */
-//public class HomeFragment extends Fragment {
-//
-//    // TODO: Rename parameter arguments, choose names that match
-//    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-//    private static final String ARG_PARAM1 = "param1";
-//    private static final String ARG_PARAM2 = "param2";
-//
-//    // TODO: Rename and change types of parameters
-//    private String mParam1;
-//    private String mParam2;
-//
-//    public HomeFragment() {
-//        // Required empty public constructor
-//    }
-//
-//    /**
-//     * Use this factory method to create a new instance of
-//     * this fragment using the provided parameters.
-//     *
-//     * @param param1 Parameter 1.
-//     * @param param2 Parameter 2.
-//     * @return A new instance of fragment HomeFragment.
-//     */
-//    // TODO: Rename and change types and number of parameters
-//    public static HomeFragment newInstance(String param1, String param2) {
-//        HomeFragment fragment = new HomeFragment();
-//        Bundle args = new Bundle();
-//        args.putString(ARG_PARAM1, param1);
-//        args.putString(ARG_PARAM2, param2);
-//        fragment.setArguments(args);
-//        return fragment;
-//    }
-//
-//    @Override
-//    public void onCreate(Bundle savedInstanceState) {
-//        super.onCreate(savedInstanceState);
-//        if (getArguments() != null) {
-//            mParam1 = getArguments().getString(ARG_PARAM1);
-//            mParam2 = getArguments().getString(ARG_PARAM2);
-//        }
-//    }
-//
-//    @Override
-//    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-//                             Bundle savedInstanceState) {
-//        // Inflate the layout for this fragment
-//        return inflater.inflate(R.layout.fragment_home, container, false);
-//    }
-//}

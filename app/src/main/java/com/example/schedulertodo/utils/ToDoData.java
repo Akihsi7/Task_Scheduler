@@ -1,6 +1,8 @@
 package com.example.schedulertodo.utils;
 
-public class ToDoData {
+import java.io.Serializable;
+
+public class ToDoData implements Serializable {
     private String taskid;
     private String task;
     private String date;
