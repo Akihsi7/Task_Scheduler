@@ -1,6 +1,6 @@
 # Task Scheduler
 
-An android application developed with Java that allows users to manage their tasks with Firebase integration for authentication and data storage.
+An android application developed with Java for task management integrating Firebase Authentication for user authentication, Cloud Firestore for data storage, along with Firebase Cloud Messaging for timely user notifications about upcoming tasks.
 
 ## Features
 
