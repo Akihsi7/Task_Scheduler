@@ -47,6 +47,14 @@ An android application developed with Java for task management integrating Fireb
 | Home Page | Date Screen | Time Screen | Pending Page |
 
 
+| <img src="https://github.com/Akihsi7/Task_Scheduler/assets/131944000/4e1d0013-e48e-479a-96ef-44aa3a3eb12e" width="179"> | <img src="https://github.com/Akihsi7/Task_Scheduler/assets/131944000/02dda6cf-e677-449d-867c-3270c79069fd" width="179"> | 
+|:---:|:---:|
+| Notification | Profile Page |
+
+
+
+
+
 
 
 
